@@ -3,27 +3,6 @@ import numpy as np
 import random
 import math
 import sys
-import mediapipe as mp
-
-# ------------------------------
-mp_drawing = mp.solutions.drawing_utils
-mp_hands = mp.solutions.hands
-
-WIDTH = 1200
-HEIGHT = 678
-
-cap = cv2.VideoCapture(0)
-
-def find_position(results):
-    landmark_list = []
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            for id, pt in enumerate(hand_landmarks.landmark):
-                x = int(pt.x * WIDTH)
-                y = int(pt.y * HEIGHT)
-                landmark_list.append((x, y))
-    return landmark_list
-# ---------------------------------
 
 # 初始化遊戲參數
 def initialize_game():
@@ -36,7 +15,6 @@ def initialize_game():
 
 # 載入背景圖片
 canvas = cv2.imread("background.png")
-print(canvas.shape)
 if canvas is None:
     print("Error: Unable to load background image.")
     sys.exit()
@@ -126,105 +104,54 @@ cv2.setMouseCallback('Fruit Ninja', mouse_event)
 while True:
     canvas.fill(0)  # 清空畫面
 
-# --------------------
-
-    with mp_hands.Hands(
-        static_image_mode=False,
-        max_num_hands=1,
-        min_detection_confidence=0.7,
-        min_tracking_confidence=0.7
-    ) as hands:
-
-
-# --------------------
-
     # 遊戲運行時
-        while life > 0:  # 生命大於0時遊戲繼續
-            canvas = cv2.imread("background.png")  # 重新加載背景圖
+    while life > 0:  # 生命大於0時遊戲繼續
+        canvas = cv2.imread("background.png")  # 重新加載背景圖
 
-            # 生成新的物件（只產生一個）
-            if len(objects) == 0:
-                # 隨機選擇要生成的物件類型
-                obj_type = random.choice([Fruit(Slime_img, 1), Fruit(bomb_img, -1)])
-                objects.append(obj_type)
+        # 生成新的物件（只產生一個）
+        if len(objects) == 0:
+            # 隨機選擇要生成的物件類型
+            obj_type = random.choice([Fruit(Slime_img, 1), Fruit(bomb_img, -1)])
+            objects.append(obj_type)
 
-            # 移動和繪製現有物件
-            for obj in objects:
-                obj.move()
-                if obj.y > height or obj.x > width or obj.y < 0 or obj.x < 0:
-                    if obj.value > 0:  # 只有水果超出畫面才扣生命值
-                        life -= 1
-                    objects.remove(obj)
-                else:
-                    obj.draw()
+        # 移動和繪製現有物件
+        for obj in objects:
+            obj.move()
+            if obj.y > height or obj.x > width or obj.y < 0 or obj.x < 0:
+                if obj.value > 0:  # 只有水果超出畫面才扣生命值
+                    life -= 1
+                objects.remove(obj)
+            else:
+                obj.draw()
 
-            # 顯示遊戲資訊和畫面
-            cv2.putText(canvas, f"Score: {score}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            cv2.putText(canvas, f"Life: {life}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            if history_scores:
-                cv2.putText(canvas, f"History Score: {history_scores[0]}", (width - 300, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        # 顯示遊戲資訊和畫面
+        cv2.putText(canvas, f"Score: {score}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        cv2.putText(canvas, f"Life: {life}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        if history_scores:
+            cv2.putText(canvas, f"History Score: {history_scores[0]}", (width - 300, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
-    # -----------------------------------------------------
+        cv2.imshow('Fruit Ninja', canvas)
 
-            ret, frame = cap.read()
-            if not ret:
-                break
+        key = cv2.waitKey(30)
+        if key == 27:  # 按下ESC暫停遊戲
+            cv2.waitKey(-1)
+        if key == ord('q'):  # 按下Q鍵退出遊戲
+            break
 
-            frame_resized = cv2.resize(frame, (WIDTH, HEIGHT))
+    # 游戏结束，显示 GAME OVER
+    if life <= 0:
+        history_scores.append(score)
+        history_scores = sorted(history_scores, reverse=True)[:5]  # 保留最高的五個分數
 
-            rgb_frame = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB)
-
-            results = hands.process(rgb_frame)
-
-            landmarks = find_position(results)
-
-            if len(landmarks) > 8:
-                x, y = landmarks[8]
-                x = WIDTH - x
-
-
-                for obj in objects:
-                    h, w, _ = obj.img.shape
-                    h, w = int(h), int(w)
-                    y1, y2 = int(obj.y), int(obj.y + h)
-                    x1, x2 = int(obj.x), int(obj.x + w)
-                    if y1 <= y <= y2 and x1 <= x <= x2:  # 檢查滑鼠點擊位置是否在物件範圍內
-                        if obj.value > 0:
-                            score += 10  # 水果加分
-                        else:
-                            life -= 1  # 炸彈扣血
-                        objects.remove(obj)  # 從列表中移除被切中的物件
-                        break
-
-                cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
-
-
-    # -----------------------------------------------------
-
-            
-
-            cv2.imshow('Fruit Ninja', canvas)
-
-            key = cv2.waitKey(30)
-            if key == 27:  # 按下ESC暫停遊戲
-                cv2.waitKey(-1)
-            if key == ord('q'):  # 按下Q鍵退出遊戲
-                break
-
-        # 游戏结束，显示 GAME OVER
-        if life <= 0:
-            history_scores.append(score)
-            history_scores = sorted(history_scores, reverse=True)[:5]  # 保留最高的五個分數
-
-            canvas = cv2.imread("background.png")  # 重新加載背景圖
-            cv2.putText(canvas, "GAME OVER", (width // 2 - 150, height // 2 - 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 0), 4)
-            cv2.putText(canvas, f"Final Score: {score}", (width // 2 - 150, height // 2 + 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            
-            for i, hs in enumerate(history_scores):
-                cv2.putText(canvas, f"{i+1}. {hs}", (width // 2 - 150, height // 2 + 60 + i * 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            
-            cv2.putText(canvas, "Press 'W' to Restart or 'Q' to Quit", (width // 2 - 300, height // 2 + 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            cv2.imshow('Fruit Ninja', canvas)
+        canvas = cv2.imread("background.png")  # 重新加載背景圖
+        cv2.putText(canvas, "GAME OVER", (width // 2 - 150, height // 2 - 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 0), 4)
+        cv2.putText(canvas, f"Final Score: {score}", (width // 2 - 150, height // 2 + 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        
+        for i, hs in enumerate(history_scores):
+            cv2.putText(canvas, f"{i+1}. {hs}", (width // 2 - 150, height // 2 + 60 + i * 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        
+        cv2.putText(canvas, "Press 'W' to Restart or 'Q' to Quit", (width // 2 - 300, height // 2 + 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        cv2.imshow('Fruit Ninja', canvas)
         
         while True:
             key = cv2.waitKey(0)  # 等待按鍵事件
