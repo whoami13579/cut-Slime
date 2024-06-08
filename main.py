@@ -158,7 +158,7 @@ while True:
         canvas = cv2.imread("background.png")  # 重新加載背景圖
 
         ret, frame = cap.read()
-        frame1 = cv2.resize(frame, (640, 480))
+        frame1 = cv2.resize(frame, (WIDTH, HEIGHT))
         a = findpostion(frame1)
         b = findnameoflandmark(frame1)
 
@@ -166,7 +166,6 @@ while True:
             finger = []
             if a[0][1:] < a[4][1:]:
                 finger.append(1)
-                print(b[4])
 
             else:
                 finger.append(0)
@@ -174,7 +173,6 @@ while True:
             fingers = []
             for id in range(0, 4):
                 if a[tip[id]][2:] < a[tip[id] - 2][2:]:
-                    print(b[tipname[id]])
 
                     fingers.append(1)
 
@@ -186,13 +184,25 @@ while True:
         down = c[0]
 
         if len(b and a) != 0:
-            x, y = a[9]
+            x, y = a[9][1], a[9][2]
             x = WIDTH - x
 
             if up >= 3:
                 cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
             else:
                 cv2.circle(canvas, (x, y), 10, (0, 0, 255), -1)
+                for obj in objects:
+                    h, w, _ = obj.img.shape
+                    h, w = int(h), int(w)
+                    y1, y2 = int(obj.y), int(obj.y + h)
+                    x1, x2 = int(obj.x), int(obj.x + w)
+                    if y1 <= y <= y2 and x1 <= x <= x2:  # 檢查滑鼠點擊位置是否在物件範圍內
+                        if obj.value > 0:
+                            score += 10  # 水果加分
+                        else:
+                            life -= 1  # 炸彈扣血
+                        objects.remove(obj)  # 從列表中移除被切中的物件
+                        break
 
 
         # 生成新的物件（只產生一個）
