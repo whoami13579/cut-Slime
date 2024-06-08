@@ -4,11 +4,21 @@ import random
 import math
 import sys
 import mediapipe
+from collections import Counter
 
 drawingModule = mediapipe.solutions.drawing_utils
 handsModule = mediapipe.solutions.hands
 
 mod = handsModule.Hands(max_num_hands=1)
+
+WIDTH = 1200
+HEIGHT = 678
+
+cap = cv2.VideoCapture(0)
+tip = [8, 12, 16, 20]
+tipname = [8, 12, 16, 20]
+fingers = []
+finger = []
 
 def findpostion(frame1):
     list = []
@@ -20,8 +30,8 @@ def findpostion(frame1):
             )
             list = []
             for id, pt in enumerate(handLandmarks.landmark):
-                x = int(pt.x * w)
-                y = int(pt.y * h)
+                x = int(pt.x * WIDTH)
+                y = int(pt.y * HEIGHT)
                 list.append([id, x, y])
 
     return list
@@ -146,6 +156,40 @@ while True:
     # 遊戲運行時
     while life > 0:  # 生命大於0時遊戲繼續
         canvas = cv2.imread("background.png")  # 重新加載背景圖
+
+        ret, frame = cap.read()
+        frame1 = cv2.resize(frame, (640, 480))
+        a = findpostion(frame1)
+        b = findnameoflandmark(frame1)
+
+        if len(b and a) != 0:
+            finger = []
+            if a[0][1:] < a[4][1:]:
+                finger.append(1)
+                print(b[4])
+
+            else:
+                finger.append(0)
+
+            fingers = []
+            for id in range(0, 4):
+                if a[tip[id]][2:] < a[tip[id] - 2][2:]:
+                    print(b[tipname[id]])
+
+                    fingers.append(1)
+
+                else:
+                    fingers.append(0)
+        x = fingers + finger
+        c = Counter(x)
+        up = c[1]
+        down = c[0]
+
+        if len(b and a) != 0:
+            position = a[9]
+            if up >= 3:
+                cv2.circle(canvas, )
+
 
         # 生成新的物件（只產生一個）
         if len(objects) == 0:
