@@ -3,6 +3,45 @@ import numpy as np
 import random
 import math
 import sys
+import mediapipe
+
+drawingModule = mediapipe.solutions.drawing_utils
+handsModule = mediapipe.solutions.hands
+
+mod = handsModule.Hands(max_num_hands=1)
+
+def findpostion(frame1):
+    list = []
+    results = mod.process(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
+    if results.multi_hand_landmarks != None:
+        for handLandmarks in results.multi_hand_landmarks:
+            drawingModule.draw_landmarks(
+                frame1, handLandmarks, handsModule.HAND_CONNECTIONS
+            )
+            list = []
+            for id, pt in enumerate(handLandmarks.landmark):
+                x = int(pt.x * w)
+                y = int(pt.y * h)
+                list.append([id, x, y])
+
+    return list
+
+
+def findnameoflandmark(frame1):
+    list = []
+    results = mod.process(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
+    if results.multi_hand_landmarks != None:
+        for handLandmarks in results.multi_hand_landmarks:
+
+            for point in handsModule.HandLandmark:
+                list.append(
+                    str(point)
+                    .replace("< ", "")
+                    .replace("HandLandmark.", "")
+                    .replace("_", " ")
+                    .replace("[]", "")
+                )
+    return list
 
 # 初始化遊戲參數
 def initialize_game():
