@@ -186,9 +186,13 @@ while True:
         down = c[0]
 
         if len(b and a) != 0:
-            position = a[9]
+            x, y = a[9]
+            x = WIDTH - x
+
             if up >= 3:
-                cv2.circle(canvas, )
+                cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
+            else:
+                cv2.circle(canvas, (x, y), 10, (0, 0, 255), -1)
 
 
         # 生成新的物件（只產生一個）
