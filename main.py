@@ -6,6 +6,7 @@ import sys
 import mediapipe
 from collections import Counter
 
+# ------------------------------------------------
 drawingModule = mediapipe.solutions.drawing_utils
 handsModule = mediapipe.solutions.hands
 
@@ -52,6 +53,70 @@ def findnameoflandmark(frame1):
                     .replace("[]", "")
                 )
     return list
+
+
+def hand():
+    global finger, fingers
+    ret, frame = cap.read()
+    frame1 = cv2.resize(frame, (WIDTH, HEIGHT))
+    a = findpostion(frame1)
+    b = findnameoflandmark(frame1)
+
+    if len(b and a) != 0:
+        finger = []
+        if a[0][1:] < a[4][1:]:
+            finger.append(1)
+
+        else:
+            finger.append(0)
+
+        fingers = []
+        for id in range(0, 4):
+            if a[tip[id]][2:] < a[tip[id] - 2][2:]:
+
+                fingers.append(1)
+
+            else:
+                fingers.append(0)
+    x = fingers + finger
+    c = Counter(x)
+    up = c[1]
+    down = c[0]
+
+    return a, b, up, down
+
+
+def cut(hand):
+    global score, life, canvas
+    a, b, up, down = hand
+    if len(b and a) != 0:
+        x, y = a[9][1], a[9][2]
+        x = WIDTH - x
+
+        if up >= 3:
+            if WIDTH - 100 < x and x < WIDTH and 0 < y and y < 100:
+                cv2.waitKey(0)
+            cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
+        else:
+            # cv2.circle(canvas, (x, y), 10, (0, 0, 255), -1)
+            y1, y2 = max(0, int(y)), min(height, int(y + 100))
+            x1, x2 = max(0, int(x)), min(width, int(x + 100))
+            canvas[y1:y2, x1:x2] = knife_img[(y1 - int(y)):(y2 - int(y)), (x1 - int(x)):(x2 - int(x))]
+
+            for obj in objects:
+                h, w, _ = obj.img.shape
+                h, w = int(h), int(w)
+                y1, y2 = int(obj.y), int(obj.y + h)
+                x1, x2 = int(obj.x), int(obj.x + w)
+                if y1 <= y+50 <= y2 and x1 <= x+50 <= x2:  # 檢查滑鼠點擊位置是否在物件範圍內
+                    if obj.value > 0:
+                        score += 10  # 水果加分
+                    else:
+                        life -= 1  # 炸彈扣血
+                    objects.remove(obj)  # 從列表中移除被切中的物件
+                    break
+
+# ------------------------------------------------------------------
 
 # 初始化遊戲參數
 def initialize_game():
@@ -172,58 +237,9 @@ while True:
         canvas = cv2.imread("background.png")  # 重新加載背景圖
 
         canvas[:100, WIDTH - 100:] = x_img[:, :]
-        ret, frame = cap.read()
-        frame1 = cv2.resize(frame, (WIDTH, HEIGHT))
-        a = findpostion(frame1)
-        b = findnameoflandmark(frame1)
 
-        if len(b and a) != 0:
-            finger = []
-            if a[0][1:] < a[4][1:]:
-                finger.append(1)
+        cut(hand())
 
-            else:
-                finger.append(0)
-
-            fingers = []
-            for id in range(0, 4):
-                if a[tip[id]][2:] < a[tip[id] - 2][2:]:
-
-                    fingers.append(1)
-
-                else:
-                    fingers.append(0)
-        x = fingers + finger
-        c = Counter(x)
-        up = c[1]
-        down = c[0]
-
-        if len(b and a) != 0:
-            x, y = a[9][1], a[9][2]
-            x = WIDTH - x
-
-            if up >= 3:
-                if WIDTH - 100 < x and x < WIDTH and 0 < y and y < 100:
-                    life = 0
-                cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
-            else:
-                # cv2.circle(canvas, (x, y), 10, (0, 0, 255), -1)
-                y1, y2 = max(0, int(y)), min(height, int(y + 100))
-                x1, x2 = max(0, int(x)), min(width, int(x + 100))
-                canvas[y1:y2, x1:x2] = knife_img[(y1 - int(y)):(y2 - int(y)), (x1 - int(x)):(x2 - int(x))]
-
-                for obj in objects:
-                    h, w, _ = obj.img.shape
-                    h, w = int(h), int(w)
-                    y1, y2 = int(obj.y), int(obj.y + h)
-                    x1, x2 = int(obj.x), int(obj.x + w)
-                    if y1 <= y+50 <= y2 and x1 <= x+50 <= x2:  # 檢查滑鼠點擊位置是否在物件範圍內
-                        if obj.value > 0:
-                            score += 10  # 水果加分
-                        else:
-                            life -= 1  # 炸彈扣血
-                        objects.remove(obj)  # 從列表中移除被切中的物件
-                        break
 
 
         # 生成新的物件（只產生一個）
@@ -270,7 +286,7 @@ while True:
         
         cv2.putText(canvas, "Press 'W' to Restart or 'Q' to Quit", (width // 2 - 300, height // 2 + 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
         cv2.imshow('Fruit Ninja', canvas)
-        
+
         while True:
             key = cv2.waitKey(0)  # 等待按鍵事件
             if key == ord('w'):  # 按下W鍵重新開始遊戲
