@@ -138,6 +138,30 @@ def draw_knife(x, y):
             canvas[y1:y2, x1:x2, c] = (alpha_s * knife_img[img_y1:img_y2, img_x1:img_x2, c] +
                                         alpha_l * canvas[y1:y2, x1:x2, c])
 
+
+def draw_pause(x, y):
+    global pause_img, canvas
+    new_center_x, new_center_y = 50, 50
+
+    # 將物件的位置和尺寸轉換為整數
+    y1, y2 = max(0, int(y - new_center_y)), min(height, int(y + 50 - new_center_y))
+    x1, x2 = max(0, int(x - new_center_x)), min(width, int(x + 50 - new_center_x))
+
+    # 檢查物件位置是否在畫面內
+    if y1 < height and y2 > 0 and x1 < width and x2 > 0:
+        # 計算圖片和畫布的重疊區域
+        img_y1 = max(0, new_center_y - int(y) + y1)
+        img_y2 = img_y1 + (y2 - y1)
+        img_x1 = max(0, new_center_x - int(x) + x1)
+        img_x2 = img_x1 + (x2 - x1)
+
+        # 創建遮罩和反遮罩
+        alpha_s = pause_img[:, :, 3] / 255.0
+        alpha_l = 1.0 - alpha_s
+
+        for c in range(0, 3):
+            canvas[:100, WIDTH - 100:, c] = (alpha_s * pause_img[:, :, c] +
+                                        alpha_l * canvas[:100, WIDTH - 100:, c])
 # ------------------------------------------- 
 
 # 初始化遊戲參數
@@ -196,11 +220,11 @@ if bomb_img is None:
     sys.exit()
 knife_img = cv2.resize(knife_img, (100, 100))
 
-x_img = cv2.imread('x.png')
+pause_img = cv2.imread('pause.png', cv2.IMREAD_UNCHANGED)
 if bomb_img is None:
     print("Error: Unable to load x image.")
     sys.exit()
-x_img = cv2.resize(x_img, (100, 100))
+pause_img = cv2.resize(pause_img, (100, 100))
 
 # 定義水果和炸彈類別
 class Fruit:
@@ -370,7 +394,6 @@ while True:
     if background is not None:
         canvas = background.copy()
 
-    cut(hand_detection())
 
     # 遊戲運行時
     start_time = cv2.getTickCount() / cv2.getTickFrequency()
@@ -379,6 +402,9 @@ while True:
         if background is not None:
             canvas = background.copy()
         current_time = cv2.getTickCount() / cv2.getTickFrequency()
+
+        draw_pause(100, 100)
+        cut(hand_detection())
 
         # 根據分數調整難度
         if score >= level * 50:  # 每達到50分，增加一級難度
