@@ -39,31 +39,13 @@ def findpostion(frame1):
     return list
 
 
-def findnameoflandmark(frame1):
-    list = []
-    results = mod.process(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
-    if results.multi_hand_landmarks != None:
-        for handLandmarks in results.multi_hand_landmarks:
-
-            for point in handsModule.HandLandmark:
-                list.append(
-                    str(point)
-                    .replace("< ", "")
-                    .replace("HandLandmark.", "")
-                    .replace("_", " ")
-                    .replace("[]", "")
-                )
-    return list
-
-
 def hand_detection():
     global finger, fingers
     ret, frame = cap.read()
     frame1 = cv2.resize(frame, (WIDTH, HEIGHT))
     a = findpostion(frame1)
-    b = findnameoflandmark(frame1)
 
-    if len(b and a) != 0:
+    if len(a) != 0:
         finger = []
         if a[0][1:] < a[4][1:]:
             finger.append(1)
@@ -84,13 +66,13 @@ def hand_detection():
     up = c[1]
     down = c[0]
 
-    return a, b, up, down
+    return a, up, down
 
 
-def cut(hand_detection):
+def play(hand_detection):
     global score, life, canvas
-    a, b, up, down = hand_detection
-    if len(b and a) != 0:
+    a, up, down = hand_detection
+    if len(a) != 0:
         x, y = a[9][1], a[9][2]
         x = WIDTH - x
 
@@ -404,7 +386,7 @@ while True:
         current_time = cv2.getTickCount() / cv2.getTickFrequency()
 
         draw_pause(100, 100)
-        cut(hand_detection())
+        play(hand_detection())
 
         # 根據分數調整難度
         if score >= level * 50:  # 每達到50分，增加一級難度
