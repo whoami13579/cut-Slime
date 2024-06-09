@@ -122,6 +122,20 @@ if bomb_img is None:
     print("Error: Unable to load bomb image.")
     sys.exit()
 
+knife_img = cv2.imread('knife.png')
+if bomb_img is None:
+    print("Error: Unable to load knife image.")
+    sys.exit()
+
+knife_img = cv2.resize(knife_img, (100, 100))
+
+x_img = cv2.imread('x.png')
+if bomb_img is None:
+    print("Error: Unable to load x image.")
+    sys.exit()
+
+x_img = cv2.resize(x_img, (100, 100))
+
 # 初始化遊戲物件列表
 initialize_game()
 
@@ -157,6 +171,7 @@ while True:
     while life > 0:  # 生命大於0時遊戲繼續
         canvas = cv2.imread("background.png")  # 重新加載背景圖
 
+        canvas[:100, WIDTH - 100:] = x_img[:, :]
         ret, frame = cap.read()
         frame1 = cv2.resize(frame, (WIDTH, HEIGHT))
         a = findpostion(frame1)
@@ -188,15 +203,21 @@ while True:
             x = WIDTH - x
 
             if up >= 3:
+                if WIDTH - 100 < x and x < WIDTH and 0 < y and y < 100:
+                    life = 0
                 cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
             else:
-                cv2.circle(canvas, (x, y), 10, (0, 0, 255), -1)
+                # cv2.circle(canvas, (x, y), 10, (0, 0, 255), -1)
+                y1, y2 = max(0, int(y)), min(height, int(y + 100))
+                x1, x2 = max(0, int(x)), min(width, int(x + 100))
+                canvas[y1:y2, x1:x2] = knife_img[(y1 - int(y)):(y2 - int(y)), (x1 - int(x)):(x2 - int(x))]
+
                 for obj in objects:
                     h, w, _ = obj.img.shape
                     h, w = int(h), int(w)
                     y1, y2 = int(obj.y), int(obj.y + h)
                     x1, x2 = int(obj.x), int(obj.x + w)
-                    if y1 <= y <= y2 and x1 <= x <= x2:  # 檢查滑鼠點擊位置是否在物件範圍內
+                    if y1 <= y+50 <= y2 and x1 <= x+50 <= x2:  # 檢查滑鼠點擊位置是否在物件範圍內
                         if obj.value > 0:
                             score += 10  # 水果加分
                         else:
