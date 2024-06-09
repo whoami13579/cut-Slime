@@ -82,19 +82,8 @@ def play(hand_detection):
             cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
         else:
             draw_knife(x, y)
+            cut(x, y)
 
-            for obj in objects:
-                h, w, _ = obj.img.shape
-                h, w = int(h), int(w)
-                y1, y2 = int(obj.y), int(obj.y + h)
-                x1, x2 = int(obj.x), int(obj.x + w)
-                if y1 <= y+50 <= y2 and x1 <= x+50 <= x2:  # 檢查滑鼠點擊位置是否在物件範圍內
-                    if obj.value > 0:
-                        score += 10  # 水果加分
-                    else:
-                        life -= 1  # 炸彈扣血
-                    objects.remove(obj)  # 從列表中移除被切中的物件
-                    break
 
 def draw_knife(x, y):
     global knife_img, canvas
@@ -144,6 +133,37 @@ def draw_pause(x, y):
         for c in range(0, 3):
             canvas[:100, WIDTH - 100:, c] = (alpha_s * pause_img[:, :, c] +
                                         alpha_l * canvas[:100, WIDTH - 100:, c])
+
+def cut(x, y):
+    global score, life
+    for obj in objects:
+        h, w, _ = obj.img.shape
+        h, w = int(h), int(w)
+        # 计算旋转后的图像位置和尺寸
+        M = cv2.getRotationMatrix2D((obj.center_x, obj.center_y), obj.angle, 1)
+        rotated_corners = np.array([[0, 0], [w, 0], [w, h], [0, h]])
+        rotated_corners = cv2.transform(np.array([rotated_corners]), M)[0]
+        min_x, min_y = np.min(rotated_corners, axis=0)
+        max_x, max_y = np.max(rotated_corners, axis=0)
+        y1, y2 = int(obj.y + min_y), int(obj.y + max_y)
+        x1, x2 = int(obj.x + min_x), int(obj.x + max_x)
+
+        if y1 <= y <= y2 and x1 <= x <= x2:  # 檢查滑鼠點擊位置是否在物件範圍內
+            if obj.value > 0:
+                if obj.life > 1:  # 如果物件有多條生命
+                    obj.life -= 1  # 減少生命
+                    if obj.hit_img is not None:  # 如果有受擊圖片，替換圖片
+                        obj.img = obj.hit_img
+                        obj.hit_timer = obj.hit_duration  # 设置受击计时器
+                else:
+                    score += 10  # 水果加分
+                    explosions.append(Explosion(obj.x, obj.y))  # 添加爆炸效果
+                    objects.remove(obj)  # 從列表中移除被切中的物件
+            else:
+                life -= 1  # 炸彈扣血
+                explosions.append(Explosion(obj.x, obj.y))  # 添加爆炸效果
+                objects.remove(obj)
+            break
 # ------------------------------------------- 
 
 # 初始化遊戲參數
