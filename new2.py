@@ -23,6 +23,7 @@ fingers = []
 finger = []
 
 pause = False
+initialize = False
 
 def findpostion(frame1):
     list = []
@@ -89,6 +90,27 @@ def play():
         elif show_knife:
             draw_knife(x, y)
             cut(x, y)
+            show_knife = False
+        else:
+            cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
+
+def menu():
+    global score, life, canvas, a, up, down, show_knife, initialize
+    if len(a) != 0:
+        x, y = a[9][1], a[9][2]
+        x = WIDTH - x
+
+        if up >= 3:
+            if WIDTH - 100 < x and x < WIDTH and 0 < y and y < 100:
+                draw_triangle(100, 100)
+                cv2.imshow('Fruit Ninja', canvas)
+                cv2.waitKey(0)
+            cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
+            show_knife = True
+        elif show_knife:
+            draw_knife(x, y)
+            if 350 <= x and x <= 550 and 100 <= y and y <= 200:
+                initialize = True
             show_knife = False
         else:
             cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
@@ -191,6 +213,30 @@ def draw_start(x, y):
             play_img[y:y+100, x:x+200, c] = (alpha_s * start_img[:, :, c] +
                                         alpha_l * play_img[y:y+100, x:x+200, c])
 
+def draw_restart(x, y):
+    global restart_img, canvas
+    new_center_x, new_center_y = 100, 50
+
+    # 將物件的位置和尺寸轉換為整數
+    y1, y2 = max(0, int(y - new_center_y)), min(height, int(y + 100 - new_center_y))
+    x1, x2 = max(0, int(x - new_center_x)), min(width, int(x + 200 - new_center_x))
+
+    # 檢查物件位置是否在畫面內
+    if y1 < height and y2 > 0 and x1 < width and x2 > 0:
+        # 計算圖片和畫布的重疊區域
+        img_y1 = max(0, new_center_y - int(y) + y1)
+        img_y2 = img_y1 + (y2 - y1)
+        img_x1 = max(0, new_center_x - int(x) + x1)
+        img_x2 = img_x1 + (x2 - x1)
+
+        # 創建遮罩和反遮罩
+        alpha_s = restart_img[:, :, 3] / 255.0
+        alpha_l = 1.0 - alpha_s
+
+        for c in range(0, 3):
+            canvas[y:y+100, x:x+200, c] = (alpha_s * restart_img[:, :, c] +
+                                        alpha_l * canvas[y:y+100, x:x+200, c])
+
 def cut(x, y):
     global score, life
     for obj in objects:
@@ -213,7 +259,10 @@ def cut(x, y):
                         obj.img = obj.hit_img
                         obj.hit_timer = obj.hit_duration  # 设置受击计时器
                 else:
-                    score += 10  # 水果加分
+                    if obj.img is red_slime_img:
+                        score += 30  # 红史莱姆加30分
+                    else:
+                        score += 10  # 其他水果加10分
                     explosions.append(Explosion(obj.x, obj.y))  # 添加爆炸效果
                     objects.remove(obj)  # 從列表中移除被切中的物件
             else:
@@ -309,6 +358,12 @@ if pause_img is None:
     print("Error: Unable to load triangle image.")
     sys.exit()
 start_img = cv2.resize(start_img, (200, 100))
+
+restart_img = cv2.imread('restart.png', cv2.IMREAD_UNCHANGED)
+if restart_img is None:
+    print("Error: Unable to load restart image.")
+    sys.exit()
+restart_img = cv2.resize(restart_img, (200, 100))
 
 # 定義水果和炸彈類別
 class Fruit:
@@ -564,23 +619,30 @@ if key == ord('w'):
             cv2.putText(canvas, f"Final Score: {score}", (width // 2 - 125, height // 2 + 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 3)
             cv2.putText(canvas, "Press 'W' to continue", (width // 2 - 165, height // 2 + 190), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
 
+            draw_restart(350, 100)
+
             hand_detection()
-            play()
+            menu()
+
+            if initialize:
+                initialize = False
+                initialize_game()
+                break
 
             cv2.imshow('Fruit Ninja', canvas)
 
     
             key = cv2.waitKey(30)  # 等待按鍵事件
-            if key == ord('w'):
-                history_scores.append(score)
-                history_scores = sorted(history_scores, reverse=True)[:5]  # 保留最高的五個分數
+            # if key == ord('w'):
+                # history_scores.append(score)
+                # history_scores = sorted(history_scores, reverse=True)[:5]  # 保留最高的五個分數
         
-                canvas = cv2.imread("background_reel.png")  # 重新加載背景圖
-                cv2.putText(canvas, "History Score", (width // 2 - 205, height // 2 - 110), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 4)
-                for i, hs in enumerate(history_scores):
-                    cv2.putText(canvas, f"{i+1}. {hs}", (width // 2 - 50, height // 2 - 20 + i * 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
-                cv2.putText(canvas, "Press 'W' to Start or 'Q' to Quit", (width // 2 - 275, height // 2 + 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
-                cv2.imshow('Fruit Ninja', canvas)
+                # canvas = cv2.imread("background_reel.png")  # 重新加載背景圖
+                # cv2.putText(canvas, "History Score", (width // 2 - 205, height // 2 - 110), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 4)
+                # for i, hs in enumerate(history_scores):
+                #     cv2.putText(canvas, f"{i+1}. {hs}", (width // 2 - 50, height // 2 - 20 + i * 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+                # cv2.putText(canvas, "Press 'W' to Start or 'Q' to Quit", (width // 2 - 275, height // 2 + 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+                # cv2.imshow('Fruit Ninja', canvas)
                 
                 # while True:
                 #    key = cv2.waitKey(30)  # 等待按鍵事件，讓玩家查看歷史分數
