@@ -22,6 +22,8 @@ tipname = [8, 12, 16, 20]
 fingers = []
 finger = []
 
+pause = False
+
 def findpostion(frame1):
     list = []
     results = mod.process(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
@@ -70,19 +72,26 @@ def hand_detection():
 a = None
 up = None
 down = None
+show_knife = False
 def play():
-    global score, life, canvas, a, up, down
+    global score, life, canvas, a, up, down, show_knife
     if len(a) != 0:
         x, y = a[9][1], a[9][2]
         x = WIDTH - x
 
         if up >= 3:
             if WIDTH - 100 < x and x < WIDTH and 0 < y and y < 100:
+                draw_triangle(100, 100)
+                cv2.imshow('Fruit Ninja', canvas)
                 cv2.waitKey(0)
             cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
-        else:
+            show_knife = True
+        elif show_knife:
             draw_knife(x, y)
             cut(x, y)
+            show_knife = False
+        else:
+            cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
 
 
 def draw_knife(x, y):
@@ -115,8 +124,8 @@ def draw_pause(x, y):
     new_center_x, new_center_y = 50, 50
 
     # 將物件的位置和尺寸轉換為整數
-    y1, y2 = max(0, int(y - new_center_y)), min(height, int(y + 50 - new_center_y))
-    x1, x2 = max(0, int(x - new_center_x)), min(width, int(x + 50 - new_center_x))
+    y1, y2 = max(0, int(y - new_center_y)), min(height, int(y + 100 - new_center_y))
+    x1, x2 = max(0, int(x - new_center_x)), min(width, int(x + 100 - new_center_x))
 
     # 檢查物件位置是否在畫面內
     if y1 < height and y2 > 0 and x1 < width and x2 > 0:
@@ -133,6 +142,54 @@ def draw_pause(x, y):
         for c in range(0, 3):
             canvas[:100, WIDTH - 100:, c] = (alpha_s * pause_img[:, :, c] +
                                         alpha_l * canvas[:100, WIDTH - 100:, c])
+
+def draw_triangle(x, y):
+    global triangle_img, canvas
+    new_center_x, new_center_y = 50, 50
+
+    # 將物件的位置和尺寸轉換為整數
+    y1, y2 = max(0, int(y - new_center_y)), min(height, int(y + 100 - new_center_y))
+    x1, x2 = max(0, int(x - new_center_x)), min(width, int(x + 100 - new_center_x))
+
+    # 檢查物件位置是否在畫面內
+    if y1 < height and y2 > 0 and x1 < width and x2 > 0:
+        # 計算圖片和畫布的重疊區域
+        img_y1 = max(0, new_center_y - int(y) + y1)
+        img_y2 = img_y1 + (y2 - y1)
+        img_x1 = max(0, new_center_x - int(x) + x1)
+        img_x2 = img_x1 + (x2 - x1)
+
+        # 創建遮罩和反遮罩
+        alpha_s = pause_img[:, :, 3] / 255.0
+        alpha_l = 1.0 - alpha_s
+
+        for c in range(0, 3):
+            canvas[:100, WIDTH - 100:, c] = (alpha_s * triangle_img[:, :, c] +
+                                        alpha_l * canvas[:100, WIDTH - 100:, c])
+
+def draw_start(x, y):
+    global start_img, play_img
+    new_center_x, new_center_y = 100, 50
+
+    # 將物件的位置和尺寸轉換為整數
+    y1, y2 = max(0, int(y - new_center_y)), min(height, int(y + 100 - new_center_y))
+    x1, x2 = max(0, int(x - new_center_x)), min(width, int(x + 200 - new_center_x))
+
+    # 檢查物件位置是否在畫面內
+    if y1 < height and y2 > 0 and x1 < width and x2 > 0:
+        # 計算圖片和畫布的重疊區域
+        img_y1 = max(0, new_center_y - int(y) + y1)
+        img_y2 = img_y1 + (y2 - y1)
+        img_x1 = max(0, new_center_x - int(x) + x1)
+        img_x2 = img_x1 + (x2 - x1)
+
+        # 創建遮罩和反遮罩
+        alpha_s = start_img[:, :, 3] / 255.0
+        alpha_l = 1.0 - alpha_s
+
+        for c in range(0, 3):
+            play_img[y:y+100, x:x+200, c] = (alpha_s * start_img[:, :, c] +
+                                        alpha_l * play_img[y:y+100, x:x+200, c])
 
 def cut(x, y):
     global score, life
@@ -240,6 +297,18 @@ if pause_img is None:
     print("Error: Unable to load x image.")
     sys.exit()
 pause_img = cv2.resize(pause_img, (100, 100))
+
+triangle_img = cv2.imread('triangle.png', cv2.IMREAD_UNCHANGED)
+if pause_img is None:
+    print("Error: Unable to load triangle image.")
+    sys.exit()
+triangle_img = cv2.resize(triangle_img, (100, 100))
+
+start_img = cv2.imread('start.png', cv2.IMREAD_UNCHANGED)
+if pause_img is None:
+    print("Error: Unable to load triangle image.")
+    sys.exit()
+start_img = cv2.resize(start_img, (200, 100))
 
 # 定義水果和炸彈類別
 class Fruit:
@@ -510,7 +579,7 @@ if key == ord('w'):
                 cv2.putText(canvas, "History Score", (width // 2 - 205, height // 2 - 110), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 4)
                 for i, hs in enumerate(history_scores):
                     cv2.putText(canvas, f"{i+1}. {hs}", (width // 2 - 50, height // 2 - 20 + i * 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
-                cv2.putText(canvas, "Press 'W' to Restart or 'Q' to Quit", (width // 2 - 275, height // 2 + 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+                cv2.putText(canvas, "Press 'W' to Start or 'Q' to Quit", (width // 2 - 275, height // 2 + 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
                 cv2.imshow('Fruit Ninja', canvas)
                 
                 # while True:

@@ -468,10 +468,10 @@ while True:
         cv2.putText(canvas, "Press 'W' to continue", (width // 2 - 165, height // 2 + 190), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
         hand_detection()
         play()
-        # print("line: 467")
+
         cv2.imshow('Fruit Ninja', canvas)
 
-        key = cv2.waitKey(30)  # 等待按鍵事件
+        key = cv2.waitKey(0)  # 等待按鍵事件
         if key == ord('w'):
             history_scores.append(score)
             history_scores = sorted(history_scores, reverse=True)[:5]  # 保留最高的五個分數
