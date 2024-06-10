@@ -111,6 +111,9 @@ def menu():
             draw_knife(x, y)
             if 350 <= x and x <= 550 and 100 <= y and y <= 200:
                 initialize = True
+            if 650 <= x and x <= 850 and 100 <= y and y <= 200:
+                cv2.destroyAllWindows()
+                sys.exit()
             show_knife = False
         else:
             cv2.circle(canvas, (x, y), 10, (255, 0, 0), -1)
@@ -235,6 +238,30 @@ def draw_restart(x, y):
 
         for c in range(0, 3):
             canvas[y:y+100, x:x+200, c] = (alpha_s * restart_img[:, :, c] +
+                                        alpha_l * canvas[y:y+100, x:x+200, c])
+
+def draw_quit(x, y):
+    global quit_img, canvas
+    new_center_x, new_center_y = 100, 50
+
+    # 將物件的位置和尺寸轉換為整數
+    y1, y2 = max(0, int(y - new_center_y)), min(height, int(y + 100 - new_center_y))
+    x1, x2 = max(0, int(x - new_center_x)), min(width, int(x + 200 - new_center_x))
+
+    # 檢查物件位置是否在畫面內
+    if y1 < height and y2 > 0 and x1 < width and x2 > 0:
+        # 計算圖片和畫布的重疊區域
+        img_y1 = max(0, new_center_y - int(y) + y1)
+        img_y2 = img_y1 + (y2 - y1)
+        img_x1 = max(0, new_center_x - int(x) + x1)
+        img_x2 = img_x1 + (x2 - x1)
+
+        # 創建遮罩和反遮罩
+        alpha_s = quit_img[:, :, 3] / 255.0
+        alpha_l = 1.0 - alpha_s
+
+        for c in range(0, 3):
+            canvas[y:y+100, x:x+200, c] = (alpha_s * quit_img[:, :, c] +
                                         alpha_l * canvas[y:y+100, x:x+200, c])
 
 def cut(x, y):
@@ -364,6 +391,12 @@ if restart_img is None:
     print("Error: Unable to load restart image.")
     sys.exit()
 restart_img = cv2.resize(restart_img, (200, 100))
+
+quit_img = cv2.imread('quit.png', cv2.IMREAD_UNCHANGED)
+if quit_img is None:
+    print("Error: Unable to load quit image.")
+    sys.exit()
+quit_img = cv2.resize(quit_img, (200, 100))
 
 # 定義水果和炸彈類別
 class Fruit:
@@ -620,6 +653,7 @@ if key == ord('w'):
             cv2.putText(canvas, "Press 'W' to continue", (width // 2 - 165, height // 2 + 190), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
 
             draw_restart(350, 100)
+            draw_quit(650, 100)
 
             hand_detection()
             menu()
